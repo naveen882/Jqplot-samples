@@ -1,0 +1,47 @@
+from django.db import models
+from content.models import Content
+from users.models import UserProfile
+
+# Create your models here.
+class CustomerProfile(models.Model):
+	name = models.CharField(max_length=255)
+	description = models.CharField(max_length=255)
+
+class Categorygroup(models.Model):
+	name = models.CharField(max_length=255)
+	description = models.CharField(max_length=255)
+	customer = models.ForeignKey(CustomerProfile)
+
+
+class Category(models.Model):
+	name = models.CharField(max_length=255)
+	profile = models.ForeignKey(CustomerProfile)
+	description = models.CharField(max_length=255)
+	categorygroup = models.ForeignKey(Categorygroup)
+	example = models.CharField(max_length=512)
+	created_date = models.DateTimeField(auto_now_add=True)
+	modified_date = models.DateTimeField(auto_now_add=True, auto_now=True)
+
+	def __str__(self):
+		return self.name
+
+	def __unicode__(self):
+		return self.name
+
+class Taggeddata(models.Model):
+	content = models.ForeignKey(Content)
+	field1 = models.TextField()
+	field2 = models.TextField()
+	field3 = models.TextField(null=True, blank = True)
+	field4 = models.TextField(null=True, blank = True)
+	field5 = models.TextField(null=True, blank = True)
+	field6 = models.TextField(null=True, blank = True)
+	#tag = models.TextField(null=True, blank = True)
+	tag = models.ForeignKey(Category,null=True, blank = True)
+	created_date = models.DateTimeField(auto_now_add=True)
+	modified_date = models.DateTimeField(auto_now_add=True, auto_now=True)
+	tagged_by = models.ForeignKey(UserProfile,null=True)
+
+class Assigntaggedcontent(models.Model):
+	content = models.ForeignKey(Content)
+	assign_to = models.ForeignKey(UserProfile)

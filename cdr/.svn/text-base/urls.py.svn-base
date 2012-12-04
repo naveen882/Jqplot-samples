@@ -1,0 +1,38 @@
+from django.conf.urls import patterns, include, url
+
+# Uncomment the next two lines to enable the admin:
+from django.contrib import admin
+admin.autodiscover()
+
+urlpatterns = patterns('tagging.views',
+    # Examples:
+    # url(r'^$', 'ilabs_site.views.home', name='home'),
+    # url(r'^ilabs_site/', include('ilabs_site.foo.urls')),
+
+    # Uncomment the admin/doc line below to enable admin documentation:
+    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+
+    # Uncomment the next line to enable the admin:
+    url(r'^admin/', include(admin.site.urls)),
+    url(r'^createcategory/', 'createcategory'),
+    url(r'^createcustomerprofile/', 'createcustomerprofile'),
+    url(r'^createcategorygroup/', 'createcategorygroup'),
+    url(r'^addcategory/', 'addcategory'),
+    url(r'^addcategorygroup/', 'addcategorygroup'),
+    url(r'^addcustomerprofile/', 'addcustomerprofile'),
+    url(r'^addtag/(?P<cntid>\d+)', 'addtag'),
+    url(r'^deleterow/', 'deleterow'),
+    url(r'^savetags/', 'savetags'),
+    url(r'^listtagcontent/', 'listtagcontent'),
+    url(r'^reset_tag/', 'reset_tag'),
+    url(r'^complete_tag/', 'complete_tag'),
+    url(r'^videodemo/', 'videodemo'),
+    url(r'^download_tagged_file/', 'download_tagged_file'),
+	 #url(r'^send_file/', 'send_file'),
+	 url(r'^send_file/(?P<path>.*)$', 'send_file'),
+	 url(r'^assigntagger/', 'assigntagger'),
+	 url(r'^addtaggerdata/', 'addtaggerdata'),
+	 url(r'^get_category/', 'get_category'),
+    url(r'^save_category/', 'save_category'),
+    url(r'^delete_category/', 'delete_category'),
+)

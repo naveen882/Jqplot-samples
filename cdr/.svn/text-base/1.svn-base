@@ -1,0 +1,16 @@
+# Create your views here.
+from django.shortcuts import render_to_response
+from django.http import HttpResponse, HttpResponseRedirect
+from django.template import RequestContext
+from django.contrib.auth.decorators import login_required
+from django.utils import simplejson
+from apis.api import write_exception
+from django.contrib.auth import authenticate
+from django.contrib.auth.views import logout_then_login
+import logging
+
+
+def createcategory(request):
+egory(request):
+egory(request):
+	

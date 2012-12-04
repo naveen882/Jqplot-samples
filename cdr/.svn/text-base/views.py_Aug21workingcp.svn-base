@@ -1,0 +1,419 @@
+# Create your views here.
+from django.shortcuts import render_to_response
+from django.http import HttpResponse, HttpResponseRedirect
+from django.template import RequestContext
+from django.contrib.auth.decorators import login_required
+from django.utils import simplejson
+from apis.api import write_exception,get_request_type,remove_splchars
+from django.contrib.auth import authenticate
+from django.contrib.auth.views import logout_then_login
+import logging
+from tagging.models import Category,Taggeddata,Categorygroup,CustomerProfile
+from ilabs_conf import *
+import xlrd
+from content.models import Content
+import csv
+import re
+import codecs
+from math import ceil
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+def createcategory(request):
+	logging.debug("Got here addcreate category=============")
+	customerprofile = CustomerProfile.objects.all()
+	categorygroup = Categorygroup.objects.all()
+	return render_to_response('tagging/addcategory.html', context_instance=RequestContext(request, {'categorygroup':categorygroup,'customerprofile':customerprofile})) 
+
+def addcategory(request):
+	logging.debug("Got add=================category=============")
+	response_dict={'status':1}
+	try:
+		qd = get_request_type(request)
+		cname = qd.__getitem__('cname')
+		cdescription = qd.__getitem__('cdescription')
+		cexample = qd.__getitem__('cexample')
+		cgroup = qd.__getitem__('cgroup')
+		cprofile = qd.__getitem__('cprofile')
+	except:
+		write_exception("Exception while retriving user data")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Exception while retriving user data"})
+	
+	try:
+		category = Category.objects.filter(name=cname,profile__id=cprofile,categorygroup__id=cgroup)
+		if len(category) > 0 :
+			response_dict.update({'msg':'Category already exists'})
+			response_dict.update({"status":2})
+		else:
+			category = Category()
+			category.name = cname
+			category.description = cdescription
+			category.example = cexample
+			category.categorygroup_id = cgroup
+			category.profile_id = cprofile
+			category.save()
+			response_dict.update({"msg":"Category saved successfully"})
+	except:
+		write_exception("Error while saving category")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Error while saving category"})
+	
+	return HttpResponse(simplejson.dumps(response_dict), mimetype='application/javascript')
+
+def save_csv(csv_file,cnt):
+	cols = 0
+	ret = 1
+	arr = []
+	try:
+		#wb = xlrd.open_workbook(str(csv_file),encoding_override="cp1252")   ##To specify UTF8-encoding
+		#wb.sheet_names()
+		#sh =  wb.sheet_by_index(0)
+		#num_of_rows = sh.nrows
+		#num_of_cols = sh.ncols
+		flag = 0
+		f = open(csv_file)
+		for l in f:
+			if flag == 0:
+				flag += 1
+				cols = l.split("\t")
+				if len(cols) > 6:
+					ret = 2
+					logging.debug("Header has more than 6 columns")
+					return ret
+				else:
+					cols = len(cols)
+				continue
+			parts = l.split("\t")
+			counter = 1
+			if(len(parts) > 6):
+				ret = 2
+				for obj in arr:
+					obj.delete()
+				return (ret,cols)
+			else:
+				taggeddata = Taggeddata()
+				for data in parts:
+					data = str(data.strip())
+					#data = remove_splchars(data)
+					#data = unicode(data, errors='replace')
+					#data = str(data.encode("utf-8"))
+					data = data.decode('ascii', 'replace').encode('ascii', 'replace')
+					logging.debug("===================================")
+					logging.debug(data)
+					logging.debug("===================================")
+					if counter == 1 and (data is not None or data != ""):
+						taggeddata.field1 = data
+					elif counter == 2 and (data is not None or data != ""):
+						taggeddata.field2 = data
+					elif counter == 3 and (data is not None or data != ""):
+						taggeddata.field3 = data
+					elif counter == 4 and (data is not None or data != ""):
+						taggeddata.field4 = data
+					elif counter == 5 and (data is not None or data != ""):
+						taggeddata.field5 = data
+					elif counter == 6 and (data is not None or data != ""):
+						taggeddata.field6 = data
+					counter += 1
+				taggeddata.content_id = cnt.id
+				taggeddata.save()
+				arr.append(taggeddata)
+		logging.debug("====================================================================================")
+		logging.debug(ret)
+		logging.debug(cols)
+		return (ret,cols)
+	except:
+		write_exception("Error while processing data and storing")
+		ret = 0
+		for obj in arr:
+			obj.delete()
+		return (ret,cols)
+					
+
+def createcustomerprofile(request):
+	logging.debug("Got here addcreate category=============")
+	return render_to_response('tagging/addcustomerprofile.html', context_instance=RequestContext(request, {})) 
+
+
+def createcategorygroup(request):
+	logging.debug("Got here addcreate category=============")
+	customerprofile = CustomerProfile.objects.all()
+	return render_to_response('tagging/addcategorygroup.html', context_instance=RequestContext(request, {'customerprofile':customerprofile})) 
+
+
+def addcategorygroup(request):
+	logging.debug("Got add=================categorygroup=============")
+	response_dict={'status':1}
+	try:
+		qd = get_request_type(request)
+		cgroup = qd.__getitem__('cgroup')
+		cdescription = qd.__getitem__('cdescription')
+		profile = qd.__getitem__('profile')
+	except:
+		write_exception("Exception while retriving user data")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Exception while retriving user data"})
+	
+	try:
+		categorygroup = Categorygroup.objects.filter(name=cgroup,customer__id=profile)
+		if len(categorygroup) > 0 :
+			response_dict.update({'msg':'Category already exists'})
+			response_dict.update({"status":2})
+		else:
+			categorygroup = Categorygroup()
+			categorygroup.name = cgroup 
+			categorygroup.description = cdescription
+			categorygroup.customer_id = profile
+			categorygroup.save()
+			response_dict.update({"msg":"Category saved successfully"})
+	except:
+		write_exception("Error while saving category")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Error while saving category"})
+	
+	return HttpResponse(simplejson.dumps(response_dict), mimetype='application/javascript')
+
+def addtag(request,cntid):
+	logging.debug("===================================================")	
+	response_dict = {}
+	display = ""
+	try:
+		#content= Content.objects.get(pk=2)
+		content= Content.objects.get(pk=cntid)
+		try:
+			previous = 0
+			Next = 0
+			#display += "<a href ='javascript:void(0);' onclick ='navigate(\"200::400\")'id='first'>First</a><a href ='javascript:void(0);' onclick ='navigate(\"200::400\")'id='previous'>Previous</a>&nbsp;&nbsp;<a href ='javascript:void(0);' onclick ='navigate(\"200::400\")'id='next'>Next</a>&nbsp;&nbsp;<a href ='javascript:void(0);' onclick ='navigate(\"last\")' id='last'>Last</a>"
+			logging.debug(page_count)
+			qd = get_request_type(request)
+			page_count = int(qd.__getitem__('page_count'))
+			td = Taggeddata.objects.filter(content=content).order_by('id')[page_count:200]
+		except:
+			write_exception('e')
+			td = Taggeddata.objects.filter(content=content).order_by('id')
+			paginator = Paginator(td, 200) # Show 25 contacts per page
+
+			page = request.GET.get('page')
+			try:
+				tagged_data = paginator.page(page)
+			except PageNotAnInteger:
+				# If page is not an integer, deliver first page.
+				tagged_data = paginator.page(1)
+			except EmptyPage:
+				# If page is out of range (e.g. 9999), deliver last page of results.
+				tagged_data = paginator.page(paginator.num_pages)
+			"""
+				Below is the solution1
+			"""
+			newobj = td
+			newrec = newobj.exclude(tag=None)
+			"""
+				End of solution1
+			"""	
+			#boolval = td.exists(tag__isnull=True)    #This is not working so going with this solution1
+			tag_flag = 0
+			selected_group = ""
+			opt_arr = []
+			dd_html = ""
+			if len(newrec) > 0:
+				logging.debug("Came insideeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+				tag_flag = 1
+				category = Category.objects.get(pk=newrec[0].tag_id)
+				selected_group = category.categorygroup
+				all_cat = Category.objects.filter(categorygroup = selected_group)
+				#category_group = category.categorygroup.all()
+
+				for t in tagged_data:
+					dd_html = '<select id="category" class="category">'
+					dd_html += '<option value="-1" class="cat">Select Category</option>'
+					for c in all_cat:
+						logging.debug("=======================================================")
+						if t.tag_id == c.id:
+							dd_html += '<option selected="selected" value="'+ str(c.id) +'" class="cat">'+str(c.name)+'</option>'
+						else:
+							dd_html += '<option value="'+ str(c.id) +'" class="cat">'+str(c.name)+'</option>'
+					dd_html += "</select>"
+					opt_arr.append(dd_html)
+					logging.debug(dd_html)
+					
+				response_dict.update({'opt_arr_len' : len(opt_arr)})
+
+			#pages = int(ceil(len_td / float(200)))
+			
+		#for t in td:
+		#	if t is not None:
+				
+		categorygroup = Categorygroup.objects.all()
+		category = Category.objects.all()
+		response_dict.update({'taggeddata':tagged_data,'categorygroup':categorygroup,'category':category,'tag_flag':tag_flag,'selected_group' : selected_group,'opt_arr':opt_arr})
+	except:
+		write_exception("Addtag exception")
+	logging.debug(response_dict)
+	return render_to_response('tagging/addtag.html', context_instance=RequestContext(request, {'response_dict':response_dict})) 
+	
+
+def deleterow(request):
+	response_dict = {'status' : 1,"msg":"Deleted row successfully"}
+	response_dict.update({"msg":"Deleted row successfully"})
+	try:
+		qd = get_request_type(request)
+		sid = qd.__getitem__('id')
+		td = Taggeddata.objects.get(pk=sid)
+		td.delete()
+	except:
+		write_exception("Error while deleting row")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Error while deleting row"})
+	return HttpResponse(simplejson.dumps(response_dict), mimetype='application/javascript')
+
+def savetags(request):
+	response_dict = {'status':1,'msg':'Tags saved successfully'}
+	try:
+		logging.debug(" Got request for saving tag")
+		qd = get_request_type(request)
+		idarr = qd.getlist('idarr[]')
+		valarr = qd.getlist('valarr[]')
+		if len(idarr) != len(valarr):
+			response_dict.update({'status':2,'msg':'Error while saving tags'})
+		else:
+			logging.debug("saved===============11")
+			for i in range(len(idarr)):
+				td = Taggeddata.objects.get(pk=idarr[i])
+				logging.debug(valarr[i])
+				if valarr[i] != "-1":
+					cat = Category.objects.get(pk=valarr[i])
+					logging.debug(cat.name)
+					#td.tag = cat.name
+					td.tag = cat
+				#else:
+				#	td.tag = ""
+				td.save()
+				logging.debug("saved===============")
+	except:
+		write_exception("Addtag exception")
+		response_dict.update({'status':0,'msg':'Exception while saving tags'})
+	return HttpResponse(simplejson.dumps(response_dict), mimetype='application/javascript')
+
+
+def addcustomerprofile(request):
+	logging.debug("Got add=================categorygroup=============")
+	response_dict={'status':1}
+	try:
+		qd = get_request_type(request)
+		profile = qd.__getitem__('profile')
+		cdescription = qd.__getitem__('cdescription')
+	except:
+		write_exception("Exception while retriving user data")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Exception while retriving user data"})
+	
+	try:
+		customerprofile = CustomerProfile.objects.filter(name=profile)
+		if len(customerprofile) > 0 :
+			response_dict.update({'msg':'Profile already exists'})
+			response_dict.update({"status":2})
+		else:
+			customerprofile = CustomerProfile()
+			customerprofile.name = profile 
+			customerprofile.description = cdescription
+			customerprofile.save()
+			response_dict.update({"msg":"Profile saved successfully"})
+	except:
+		write_exception("Error while saving Profile")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Error while saving Profile"})
+	
+	return HttpResponse(simplejson.dumps(response_dict), mimetype='application/javascript')
+
+
+def videodemo(request):
+	logging.debug("Got here addcreate category=============")
+	return render_to_response('tagging/videodemo.html', context_instance=RequestContext(request, {})) 
+
+
+def listtagcontent(request):
+	logging.debug("In list content")
+	response_dict = {'status' : 1}
+	try:
+		content = Content.objects.filter(is_tag=1).order_by('timestamp')
+	except:
+		write_exception("Exception while loading user profile data")
+		response_dict.update({'status':0})
+		response_dict.update({'msg': 'Error while loading user profile data'})
+	return render_to_response('tagging/listtagcontent.html', context_instance=RequestContext(request, {'content' : content})) 
+
+
+
+def reset_tag(request):
+	logging.debug("Got here addcreate category=============")
+	logging.debug("Got add=================categorygroup=============")
+	response_dict={'status':1}
+	try:
+		qd = get_request_type(request)
+		contentid = qd.__getitem__('id')
+		content = Content.objects.get(pk=contentid)
+		content.tag_complete=0
+		content.save();
+	except:
+		write_exception("Exception while resetting data")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Exception while resetting data"})
+	return HttpResponse(simplejson.dumps(response_dict), mimetype='application/javascript')
+
+def complete_tag(request):
+	logging.debug("Got here addcreate category=============")
+	logging.debug("Got add=================categorygroup=============")
+	response_dict={'status':1}
+	try:
+		qd = get_request_type(request)
+		contentid = qd.__getitem__('id')
+		content = Content.objects.get(pk=contentid)
+		content.tag_complete=1
+		content.save();
+	except:
+		write_exception("Exception while marking tag complete data")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Exception while marking tag complete"})
+	return HttpResponse(simplejson.dumps(response_dict), mimetype='application/javascript')
+
+	
+
+def download_tagged_file(request):
+	logging.debug("Got here addcreate category=============")
+	logging.debug("Got add=================categorygroup=============")
+	response_dict={'status':1}
+	try:
+		qd = get_request_type(request)
+		contentid = qd.__getitem__('cntid')
+		content = Content.objects.get(pk=contentid)
+		taggeddata = content.taggeddata_set.all()
+		cols = []
+		logging.debug(content.no_of_cols)
+		for col in range(content.no_of_cols):
+			cols.append("field"+str(col))
+		#taggeddata = Taggeddata.objects.filter(content__id=contentid)
+		tmp_filename = ILABS_MEDIA_ROOT + "/tmp/"+str(content.name)+".txt"
+		logging.debug(tmp_filename)
+		download_filename = "/media/tmp/" + str(content.name)+".txt"
+		f=open(tmp_filename,"w")
+		for tg in taggeddata:
+			#for col in cols:
+			for col in range(1,content.no_of_cols+1):
+				var = "field" + str(col)
+				#f.write(tg.var)
+				val = getattr(tg, var)
+				f.write(val)
+				f.write("\t")
+			logging.debug(tg.tag)
+			if tg.tag is None:
+				f.write("")
+			else:
+				f.write(tg.tag)
+			f.write("\n")
+		f.close()
+		#response_dict.update({"filename" : f.name})
+		response_dict.update({"filename" : download_filename})
+	except:
+		write_exception("Exception while downloading tagged file")
+		response_dict.update({"status":0})
+		response_dict.update({"msg":"Exception while downloading tagged file"})
+	return HttpResponse(simplejson.dumps(response_dict), mimetype='application/javascript')

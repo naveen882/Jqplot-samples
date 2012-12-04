@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	
+	<title>Line Charts and Options</title>
+
+    <link class="include" rel="stylesheet" type="text/css" href="/media/js/dist/jquery.jqplot.min.css" />
+    <link rel="stylesheet" type="text/css" href="/media/js/dist/examples/examples.min.css" />
+    <link type="text/css" rel="stylesheet" href="/media/js/dist/examples/syntaxhighlighter/styles/shCoreDefault.min.css" />
+    <link type="text/css" rel="stylesheet" href="/media/js/dist/examples/syntaxhighlighter/styles/shThemejqPlot.min.css" />
+    <link rel="stylesheet" href="/media/css/jquery-ui-1.9.2.custom.css" />
+
+
+
+	<script type="text/javascript" src="/media/js/dist/jquery.min.js"></script>
+	<script type="text/javascript" src="/media/js/jquery-1.7.2.min.js" ></script>
+	<script type="text/javascript" src="/media/js/jquery.form.js"></script>
+    <script src="/media/js/jquery-1.8.3.js"></script>
+    <script src="/media/js/jquery-ui-1.9.2.custom.js"></script>
+
+   <script class="include" type="text/javascript" src="/media/js/dist/jquery.jqplot.min.js"></script>
+   <script type="text/javascript" src="/media/js/dist/examples/syntaxhighlighter/scripts/shCore.min.js"></script>
+   <script type="text/javascript" src="/media/js/dist/examples/syntaxhighlighter/scripts/shBrushJScript.min.js"></script>
+   <script type="text/javascript" src="/media/js/dist/examples/syntaxhighlighter/scripts/shBrushXml.min.js"></script>
+	<script class="include" type="text/javascript" src="/media/js/dist/plugins/jqplot.dateAxisRenderer.min.js"></script>
+    
+   
+
+</head>
+<body>
+<script class="code" type="text/javascript">
+function validate()
+{
+	var alertmsg="";
+	if(!($("#datepicker1").val() != ''))
+   {
+      alertmsg += '\nSelect Start Date';
+   }  
+	if(!($("#datepicker2").val() != ''))
+   {
+      alertmsg += '\nSelect End Date';
+   }  
+
+   if(alertmsg)
+   {
+      alert(alertmsg);
+      return false;
+   }
+   else
+   {
+      var paramarr={};
+      paramarr['startdate']=$("#datepicker1").val();   
+      paramarr['enddate']=$("#datepicker2").val();   
+      paramarr['ring_opt']=$('#ring_opt option:selected').val();
+		paramarr["csrfmiddlewaretoken"] = $('input[name=csrfmiddlewaretoken]').val();
+
+      var url="/cdr/process_data/";
+
+      $.post(url,paramarr,
+      function callbackHandler(data) 
+      {
+         if(data.status == 0)
+         {
+            if(data.cdr == '0' )
+				{
+					alert("No records found");
+				}
+				else 
+            {
+					var line1=data.cdr;
+				  var plot1 = $.jqplot('chart1', [line1], {
+					 title:'Default Date Axis',
+					 axes:{xaxis:{renderer:$.jqplot.DateAxisRenderer}},
+					 series:[{lineWidth:4, markerOptions:{style:'square'}}]
+				  });
+				}
+            
+         }
+         else
+         {
+            alert("There was an error while fetching data");
+         }
+      }, 
+      "json"
+   );
+      
+   }
+
+
+}
+$(document).ready(function(){
+	$( "#datepicker1" ).datepicker();
+	$("#datepicker1").datepicker('option', 'dateFormat', 'yy-mm-dd');
+	$( "#datepicker2" ).datepicker();
+	$("#datepicker2").datepicker('option', 'dateFormat', 'yy-mm-dd');
+});
+</script>
+  
+	Start Date: <input type="text" id="datepicker1" value="" class="datepicker" />&nbsp;(yy-mm-dd)<br>
+	End Date:&nbsp; <input type="text" id="datepicker2" value="" class="datepicker" />&nbsp;(yy-mm-dd)<br>
+	Select :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <select id="ring_opt" >
+					<option selected value="0">Answered</option>
+					<option value="1">Not answered</option>
+					<option value="2">No ring</option>
+					</select>
+	<br><input type="button" value="Submit" onclick="validate();" />
+
+{% csrf_token %}
+
+	<div id="chart1" class="jqplot-target" style="height: 300px; width: 650px; position: relative;">
+	<canvas class="jqplot-grid-canvas" width="650" height="300" style="position: absolute; left: 0px; top: 0px;"></canvas>
+	<canvas class="jqplot-series-shadowCanvas" width="616" height="243" style="position: absolute; left: 24px; top: 33px;"></canvas>
+	<canvas class="jqplot-series-canvas" width="616" height="243" style="position: absolute; left: 24px; top: 33px;"></canvas>
+	<canvas class="jqplot-lineRenderer-highlight-canvas" width="616" height="243" style="position: absolute; left: 24px; top: 33px;"></canvas>
+	<canvas class="jqplot-event-canvas" width="616" height="243" style="position: absolute; left: 24px; top: 33px;"></canvas>
+	</div>
+</body>
+<div id="value1"></div> 
+
+
+</html>
